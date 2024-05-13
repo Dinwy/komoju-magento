@@ -1,6 +1,6 @@
-FROM php:7.3-fpm-buster
+FROM php:8.2.1-fpm-buster
 
-ARG MAGENTO_VERSION=2.3.4
+ARG MAGENTO_VERSION=2.4.7
 
 RUN apt-get update && apt-get install -y \
   cron \
@@ -19,10 +19,12 @@ RUN apt-get update && apt-get install -y \
   lsof \
   default-mysql-client \
   vim \
-  zip
+  zip \
+  libonig-dev
 
-RUN docker-php-ext-configure \
-  gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
+RUN docker-php-ext-configure gd\
+  --with-freetype=/usr/include/\
+  --with-jpeg=/usr/include/
 
 RUN docker-php-ext-install \
   bcmath \
@@ -108,11 +110,11 @@ RUN mkdir -p /etc/nginx/html /var/www/html /sock \
   && chown -R app:app /etc/nginx /var/www /usr/local/etc/php/conf.d /sock
 
 RUN cd /tmp \
-    && curl -OL http://pubfiles.nexcess.net/magento/ce-packages/magento2-${MAGENTO_VERSION}.tar.gz
+    && curl -OL https://github.com/magento/magento2/archive/refs/tags/${MAGENTO_VERSION}.tar.gz
 
-RUN tar xzf /tmp/magento2-${MAGENTO_VERSION}.tar.gz -o -C /var/www/html
+RUN tar xzf /tmp/${MAGENTO_VERSION}.tar.gz -C /var/www/html
 
-RUN rm /tmp/magento2-${MAGENTO_VERSION}.tar.gz
+RUN rm /tmp/${MAGENTO_VERSION}.tar.gz
 
 # v7.1.0 was the version I initially used when linting, so I decided to pin it
 # to that. There's no other special reason, and no reason this can't be bumped
