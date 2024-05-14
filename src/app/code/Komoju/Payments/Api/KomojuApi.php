@@ -6,23 +6,24 @@ namespace Komoju\Payments\Api;
 
 use Komoju\Payments\Exception\KomojuExceptionBadServer;
 use Komoju\Payments\Exception\InvalidJsonException;
+use Komoju\Payments\Gateway\Config\Config;
+use Magento\Framework\HTTP\Client\Curl;
+use Exception;
 
 class KomojuApi
 {
-    /**
-     * @var \Komoju\Payments\Gateway\Config\Config
-     */
-    private $config;
+    private Config $config;
+    private Curl $curl;
+    private string $endpoint;
 
     /**
-     * @var \Magento\Framework\HTTP\Client\Curl
+     * KomojuApi constructor.
+     *
+     * @param Config $config
+     * @param Curl $curl
      */
-    private $curl;
-
-    public function __construct(
-        \Komoju\Payments\Gateway\Config\Config $config,
-        \Magento\Framework\HTTP\Client\Curl $curl
-    ) {
+    public function __construct(Config $config, Curl $curl)
+    {
         $this->endpoint = 'https://komoju.com';
         $this->config = $config;
         $this->curl = $curl;
@@ -47,8 +48,8 @@ class KomojuApi
     {
         $url = $this->endpoint . $uri;
         $options = [
-          CURLOPT_RETURNTRANSFER => true,
-          CURLOPT_USERPWD => $this->config->getSecretKey() . ':'
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_USERPWD => $this->config->getSecretKey() . ':'
         ];
         $this->curl->setOptions($options);
 
@@ -69,7 +70,7 @@ class KomojuApi
 
         $decoded = json_decode($body);
 
-        if (! empty(json_last_error())) {
+        if (!empty(json_last_error())) {
             $errorMsg = (__("KOMOJU Payments JSON Decoding Failure. Error: %1", json_last_error_msg()));
             throw new InvalidJsonException($errorMsg);
         }
@@ -80,15 +81,16 @@ class KomojuApi
     // e.g. $payload = array(
     //     'foo' => 'bar'
     // );
-    private function post($uri, $payload)
+    private function post(string $uri, array $payload)
     {
         $url = $this->endpoint . $uri;
         $data_json = json_encode($payload);
-        $options = [CURLOPT_POST => true,
-                    CURLOPT_HTTPHEADER => ['Content-Type: application/json','Komoju-Via: magento'],
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_USERPWD => $this->config->getSecretKey() . ':'
-                    ];
+        $options = [
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Komoju-Via: magento'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_USERPWD => $this->config->getSecretKey() . ':'
+        ];
         $this->curl->setOptions($options);
 
         try {
@@ -108,7 +110,7 @@ class KomojuApi
 
         $decoded = json_decode($body);
 
-        if (! empty(json_last_error())) {
+        if (!empty(json_last_error())) {
             $errorMsg = (__("KOMOJU Payments JSON Decoding Failure. Error: %1", json_last_error_msg()));
             throw new InvalidJsonException($errorMsg);
         }

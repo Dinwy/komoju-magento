@@ -48,6 +48,8 @@ class ConfigProvider implements ConfigProviderInterface
      */
     private $komojuApi;
 
+    private $scopeConfig;
+
     /**
      * Constructor
      *

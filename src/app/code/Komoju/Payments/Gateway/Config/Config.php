@@ -3,15 +3,18 @@
 namespace Komoju\Payments\Gateway\Config;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\Locale\Resolver as LocaleResolver;
+use Magento\Payment\Gateway\Config\Config as PaymentConfig;
 
 /**
  * This class provides a programmatic interface between the rest of the module
  * and the options set for the module in the admin panel.
  */
-class Config extends \Magento\Payment\Gateway\Config\Config
+class Config extends PaymentConfig
 {
-
-    private $urlInterface;
+    private UrlInterface $urlInterface;
+    private LocaleResolver $locale;
 
     /**
      * Komoju config constructor
@@ -22,10 +25,10 @@ class Config extends \Magento\Payment\Gateway\Config\Config
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\UrlInterface $urlInterface,
-        \Magento\Framework\Locale\Resolver $locale,
-        $methodCode = null,
-        $pathPattern = self::DEFAULT_PATH_PATTERN
+        UrlInterface $urlInterface,
+        Resolver $locale,
+        ?String $methodCode = null,
+        string $pathPattern = self::DEFAULT_PATH_PATTERN
     ) {
         $this->urlInterface = $urlInterface;
         $this->locale = $locale;
@@ -40,7 +43,7 @@ class Config extends \Magento\Payment\Gateway\Config\Config
      * @param int|null $storeId
      * @return bool
      */
-    public function isActive($storeId = null)
+    public function isActive($storeId = null): bool
     {
         return (bool) $this->getValue('active', $storeId);
     }
@@ -50,7 +53,7 @@ class Config extends \Magento\Payment\Gateway\Config\Config
      * @param int|null $storeId
      * @return string
      */
-    public function getTitle($storeId = null)
+    public function getTitle($storeId = null): string
     {
         return $this->getValue('title', $storeId);
     }
@@ -112,18 +115,13 @@ class Config extends \Magento\Payment\Gateway\Config\Config
 
     /**
      * Gets the store locale and compares it to acceptable komoju locales
-     * @return string (store locale or default locale)
+     * @return string The store locale or default locale
      */
-
     public function getKomojuLocale()
     {
         $defaultLocale = 'en';
         $komojuLocales = ['en','ja'];
         $storeLocale = substr($this->locale->getLocale(), 0, 2);
-        if (in_array($storeLocale, $komojuLocales)) {
-            return $storeLocale;
-        } else {
-            return $defaultLocale;
-        }
+        return in_array($storeLocale, $komojuLocales) ? $storeLocale : $defaultLocale;
     }
 }

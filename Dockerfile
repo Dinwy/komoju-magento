@@ -1,6 +1,6 @@
 FROM php:8.2.1-fpm-buster
 
-ARG MAGENTO_VERSION=2.4.7
+ARG MAGENTO_VERSION=2.4.3
 
 RUN apt-get update && apt-get install -y \
   cron \

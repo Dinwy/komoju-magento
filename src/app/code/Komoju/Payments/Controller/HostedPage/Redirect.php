@@ -4,9 +4,19 @@ namespace Komoju\Payments\Controller\HostedPage;
 
 use Magento\Framework\App\ObjectManager;
 use Magento\Sales\Model\Order;
+use Magento\Framework\App\Action\Action;
+use Magento\Framework\App\Action\Context;
+use Komoju\Payments\Model\ExternalPayment;
+use Magento\Directory\Model\CountryFactory;
+use Magento\Checkout\Model\Session;
+use Magento\Store\Model\StoreManagerInterface;
+use Psr\Log\LoggerInterface;
 
+use Komoju\Payments\Api\KomojuApi;
+use Magento\Framework\Controller\Result\RedirectFactory;
 use Komoju\Payments\Exception\KomojuExceptionBadServer;
 use Komoju\Payments\Exception\InvalidJsonException;
+use Komoju\Payments\Gateway\Config\Config;
 
 /**
  * The Redirect endpoint is responsible for creating the Hosted Page URL
@@ -14,59 +24,65 @@ use Komoju\Payments\Exception\InvalidJsonException;
  * called from the checkout page js, after the order details have been captured and
  * saved by Magento.
  */
-class Redirect extends \Magento\Framework\App\Action\Action
+class Redirect extends Action
 {
     /**
-     * @var \Magento\Framework\Controller\Result\RedirectFactory
+     * @var RedirectFactory
      */
     protected $_resultRedirectFactory;
 
     /**
-     * @var \Magento\Checkout\Model\Session
+     * @var Session
      */
     protected $_checkoutSession;
 
     /**
-     * @var \Psr\Log\LoggerInterface
+     * @var LoggerInterface
      */
     private $logger;
 
     /**
-     * @var \Komoju\Payments\Gateway\Config\Config
+     * @var Config
      */
     private $config;
 
     /**
-     * @var \Magento\Sales\Model\Order|false
+     * @var Order|false
      */
     private $order = false;
 
     /**
-     * @var \Komoju\Payments\Model\ExternalPayment
+     * @var ExternalPayment
      */
     private $externalPayment;
 
     /**
-     * @var \Komoju\Payments\Api\KomojuApi
+     * @var KomojuApi
      */
     private $komojuApi;
 
     /**
-     * @var \Magento\Directory\Model\CountryFactory
+     * @var CountryFactory
      */
     private $_countryFactory;
 
+    /**
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
     public function __construct(
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Framework\Controller\Result\RedirectFactory $resultRedirectFactory,
-        \Komoju\Payments\Model\ExternalPaymentFactory $externalPaymentFactory,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Komoju\Payments\Gateway\Config\Config $config,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Psr\Log\LoggerInterface $logger = null,
-        \Komoju\Payments\Api\KomojuApi $komojuApi,
-        \Magento\Directory\Model\CountryFactory $countryFactory
+        Context $context,
+        RedirectFactory $resultRedirectFactory,
+        ExternalPaymentFactory $externalPaymentFactory,
+        Session $checkoutSession,
+        Config $config,
+        StoreManagerInterface $storeManager,
+        LoggerInterface $logger = null,
+        KomojuApi $komojuApi,
+        CountryFactory $countryFactory
     ) {
+        parent::__construct($context);
         $this->logger = $logger ?: ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
         $this->externalPayment = $externalPaymentFactory->create();
         $this->_resultRedirectFactory = $resultRedirectFactory;
@@ -75,8 +91,6 @@ class Redirect extends \Magento\Framework\App\Action\Action
         $this->storeManager = $storeManager;
         $this->komojuApi = $komojuApi;
         $this->_countryFactory = $countryFactory;
-
-        return parent::__construct($context);
     }
 
     public function execute()
@@ -106,12 +120,10 @@ class Redirect extends \Magento\Framework\App\Action\Action
      * and returns the Komoju session's URL
      * @return string the Komoju session URL
      */
-
     private function createHostedPageUrl()
     {
         $paymentMethod = $this->getRequest()->getParam('payment_method');
         $order = $this->getOrder();
-        $billingAddress = $order->getBillingAddress();
         $externalOrderNum = $this->createExternalPayment($order);
         $currencyCode = $this->storeManager->getStore()->getBaseCurrencyCode();
         $returnUrl = $this->createReturnUrl($order->getEntityId());
@@ -120,16 +132,16 @@ class Redirect extends \Magento\Framework\App\Action\Action
         $shipping_address = $this->convertToAddressParameter($order->getShippingAddress());
 
         $komojuSession = $this->komojuApi->createSession([
-          'return_url' => $returnUrl,
-          'default_locale' => $this->config->getKomojuLocale(),
-          'payment_types' => [$paymentMethod],
-          'payment_data' => [
-              'amount' => $order->getGrandTotal(),
-              'currency' => $currencyCode,
-              'external_order_num' => $externalOrderNum,
-              'billing_address'    => $billing_address,
-              'shipping_address'   => $shipping_address,
-          ],
+            'return_url' => $returnUrl,
+            'default_locale' => $this->config->getKomojuLocale(),
+            'payment_types' => [$paymentMethod],
+            'payment_data' => [
+                'amount' => $order->getGrandTotal(),
+                'currency' => $currencyCode,
+                'external_order_num' => $externalOrderNum,
+                'billing_address' => $billing_address,
+                'shipping_address' => $shipping_address,
+            ],
         ]);
 
         return $komojuSession->session_url;
@@ -162,31 +174,31 @@ class Redirect extends \Magento\Framework\App\Action\Action
 
     /**
      * Convert Magento's address data to Sessions address parameter format.
-     * @var \Magento\Sales\Model\Order\Address|null
+     * @var Address|null
      * @return array|null
      */
     private function convertToAddressParameter($address)
     {
-        $param = null;
+        if ($address == null) {
+            return null;
+        }
 
-        if ($address != null) {
-            $streets = $this->convertStreet($address->getStreet());
+        $streets = $this->convertStreet($address->getStreet());
 
-            if ($address->getCompany()) {
-                $streets[1] .= ' ' . $address->getCompany();
-            }
+        if ($address->getCompany()) {
+            $streets[1] .= ' ' . $address->getCompany();
+        }
 
-            $param = [
-                'zipcode'         => $address->getPostcode(),
-                'street_address1' => $streets[0],
-                'street_address2' => $streets[1],
-                'country'         => $this->_countryFactory->create()->loadByCode($address->getCountryId())->getName(),
-                'city'            => $address->getCity(),
-            ];
+        $param = [
+            'zipcode' => $address->getPostcode(),
+            'street_address1' => $streets[0],
+            'street_address2' => $streets[1],
+            'country' => $this->_countryFactory->create()->loadByCode($address->getCountryId())->getName(),
+            'city' => $address->getCity(),
+        ];
 
-            if ($address->getRegion()) {
-                $param['state'] = $address->getRegion();
-            }
+        if ($address->getRegion()) {
+            $param['state'] = $address->getRegion();
         }
 
         return $param;
@@ -214,11 +226,10 @@ class Redirect extends \Magento\Framework\App\Action\Action
      * I'm not sure what the difference between the last order and last "real"
      * order is, but this seems to be the commonly accepted way to access this
      * data.
-     * @return \Magento\Sales\Model\Order
+     * @return Order
      */
     private function getOrder()
     {
-
         if (!$this->order) {
             $this->order = $this->_checkoutSession->getLastRealOrder();
         }
@@ -237,7 +248,7 @@ class Redirect extends \Magento\Framework\App\Action\Action
         $secretKey = $this->config->getSecretKey();
         $endpoint = 'komoju/hostedpage/postsessionredirect?order_id=' . $orderId;
         $hmac = hash_hmac('sha256', $endpoint, $secretKey);
-        $returnUrl = $this->_url->getUrl($endpoint .= '&hmac_magento='.$hmac);
+        $returnUrl = $this->_url->getUrl($endpoint .= '&hmac_magento=' . $hmac);
         return $returnUrl;
     }
 
@@ -251,7 +262,6 @@ class Redirect extends \Magento\Framework\App\Action\Action
     private function markOrderAsPendingPayment()
     {
         $order = $this->getOrder();
-
         $order->setState(ORDER::STATE_PENDING_PAYMENT);
         $order->setStatus(ORDER::STATE_PENDING_PAYMENT);
         $order->save();
@@ -268,10 +278,10 @@ class Redirect extends \Magento\Framework\App\Action\Action
      * deal with this possibility we're constructing an id unique to each instance
      * of the plugin and tying it to the order. When a webhook event is send this
      * unique id is then mapped back to the relevant order
-     * @var \Magento\Sales\Model\Order $order
-     * @return \Komoju\Payments\Model\ExternalPayment
+     * @var Order $order
+     * @return String
      */
-    private function createExternalPayment($order)
+    private function createExternalPayment(Order $order): string
     {
         return $this->externalPayment->createExternalPayment($order)->getExternalPaymentId();
     }

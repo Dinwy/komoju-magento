@@ -29,6 +29,8 @@ class PaymentMethodAvailable implements ObserverInterface
     /** @var string */
     private $methodCode;
 
+    private $logger;
+
     /**
      * Class constructor. The methodCode and allowableCurrencyCodes are passed in
      * through dependency injection, and are configured in etc/di/xml.
