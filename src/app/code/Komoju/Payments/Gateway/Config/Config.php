@@ -26,7 +26,7 @@ class Config extends PaymentConfig
     public function __construct(
         ScopeConfigInterface $scopeConfig,
         UrlInterface $urlInterface,
-        Resolver $locale,
+        LocaleResolver $locale,
         ?String $methodCode = null,
         string $pathPattern = self::DEFAULT_PATH_PATTERN
     ) {

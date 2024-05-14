@@ -7,6 +7,7 @@ use Magento\Sales\Model\Order;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
 use Komoju\Payments\Model\ExternalPayment;
+use Komoju\Payments\Model\ExternalPaymentFactory;
 use Magento\Directory\Model\CountryFactory;
 use Magento\Checkout\Model\Session;
 use Magento\Store\Model\StoreManagerInterface;
@@ -26,50 +27,17 @@ use Komoju\Payments\Gateway\Config\Config;
  */
 class Redirect extends Action
 {
-    /**
-     * @var RedirectFactory
-     */
-    protected $_resultRedirectFactory;
+    protected RedirectFactory $_resultRedirectFactory;
+    protected Session $_checkoutSession;
+    private LoggerInterface $logger;
+    private Config $config;
+    private OrderRepositoryInterface $orderRepository;
+    private ExternalPayment $externalPayment;
+    private ExternalPaymentFactory $externalPaymentFactory;
+    private KomojuApi $komojuApi;
+    private CountryFactory $countryFactory;
 
-    /**
-     * @var Session
-     */
-    protected $_checkoutSession;
-
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
-
-    /**
-     * @var Config
-     */
-    private $config;
-
-    /**
-     * @var Order|false
-     */
-    private $order = false;
-
-    /**
-     * @var ExternalPayment
-     */
-    private $externalPayment;
-
-    /**
-     * @var KomojuApi
-     */
-    private $komojuApi;
-
-    /**
-     * @var CountryFactory
-     */
-    private $_countryFactory;
-
-    /**
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
+    private ?Order $order = null;
 
     public function __construct(
         Context $context,
@@ -77,20 +45,23 @@ class Redirect extends Action
         ExternalPaymentFactory $externalPaymentFactory,
         Session $checkoutSession,
         Config $config,
-        StoreManagerInterface $storeManager,
+        OrderRepositoryInterface $orderRepository,
         LoggerInterface $logger = null,
+        StoreManagerInterface $storeManager,
         KomojuApi $komojuApi,
         CountryFactory $countryFactory
     ) {
-        parent::__construct($context);
         $this->logger = $logger ?: ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
-        $this->externalPayment = $externalPaymentFactory->create();
         $this->_resultRedirectFactory = $resultRedirectFactory;
         $this->_checkoutSession = $checkoutSession;
         $this->config = $config;
+        $this->orderRepository = $orderRepository;
+        $this->externalPayment = $externalPaymentFactory->create();
         $this->storeManager = $storeManager;
         $this->komojuApi = $komojuApi;
         $this->_countryFactory = $countryFactory;
+
+        parent::__construct($context);
     }
 
     public function execute()
