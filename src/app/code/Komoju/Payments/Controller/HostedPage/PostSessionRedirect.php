@@ -12,6 +12,7 @@ use Psr\Log\LoggerInterface;
 use Magento\Checkout\Model\Session;
 use Komoju\Payments\Api\KomojuApi;
 use Magento\Framework\App\Action\Context;
+
 // use Magento\Framework\Controller\Result\Raw;
 // use Magento\Framework\Controller\Result\Redirect;
 
@@ -56,6 +57,8 @@ class PostSessionRedirect extends Action
 
     public function execute()
     {
+        $this->logger->info('current session id: ' . $this->getRequest()->getParam('session_id'));
+
         if (!$this->isHmacValid()) {
             $this->logger->info('HMAC param does not match expected value, exiting.');
             $result = $this->_resultFactory->create(ResultFactory::TYPE_RAW);
@@ -63,18 +66,32 @@ class PostSessionRedirect extends Action
             $result->setContents('hmac parameter is not valid');
 
             return $result;
-        };
+        }
+        ;
 
         $resultRedirect = $this->_resultFactory->create(ResultFactory::TYPE_REDIRECT);
 
         if ($this->isSessionCompleted()) {
-            $successUrl = $this->_url->getUrl('checkout/onepage/success');
+            $successUrl = $this->processSuccessOrder();
             $resultRedirect->setUrl($successUrl);
         } else {
             $redirectUrl = $this->processFailedOrder();
             $resultRedirect->setUrl($redirectUrl);
         }
         return $resultRedirect;
+    }
+
+    private function processSuccessOrder()
+    {
+        $this->logger->info('Success Order ID: ' . $this->getRequest()->getParam('order_id'));
+
+        $orderId = $this->getRequest()->getParam('order_id');
+        $order = $this->getOrder($orderId);
+
+        $order->setState(Order::STATE_PAYMENT_REVIEW);
+        $order->setStatus(Order::STATE_PAYMENT_REVIEW);
+        $order->save();
+        return $this->_url->getUrl('checkout/onepage/success');
     }
 
     /**
@@ -84,8 +101,7 @@ class PostSessionRedirect extends Action
      */
     private function processFailedOrder()
     {
-        // Log and print in the console the order id
-        $this->logger->info('Order ID: ' . $this->getRequest()->getParam('order_id'));
+        $this->logger->info('Failed Order ID: ' . $this->getRequest()->getParam('order_id'));
 
         $orderId = $this->getRequest()->getParam('order_id');
         $order = $this->getOrder($orderId);

@@ -63,6 +63,8 @@ class Redirect extends Action
 
     public function execute()
     {
+        $this->logger->info('Redirect::current session id: ' . $this->getRequest()->getParam('session_id'));
+
         $resultRedirect = $this->_resultRedirectFactory->create();
 
         try {

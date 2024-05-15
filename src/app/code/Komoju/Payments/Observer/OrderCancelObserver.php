@@ -9,6 +9,7 @@ use Magento\Sales\Model\Order;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Sales\Api\OrderManagementInterface;
+use Magento\Framework\Session\SessionManager;
 
 use Psr\Log\LoggerInterface;
 
@@ -16,6 +17,8 @@ class OrderCancelObserver implements ObserverInterface
 {
     protected $orderRepository;
     protected $quoteManagement;
+    private $quoteRepository;
+    private $orderManagement;
     private $logger;
 
     public function __construct(
@@ -34,16 +37,26 @@ class OrderCancelObserver implements ObserverInterface
 
     public function execute(Observer $observer)
     {
-        $order = $observer->getEvent()->getOrder();
+        $objectManager = ObjectManager::getInstance();
+        $session = $objectManager->get('Magento\Framework\Session\SessionManagerInterface');
+        $this->logger->info('OrderCancelObserver: Session ID: ' . $session->getSessionId());
 
-        $this->logger->info('OrderCancelObserver: Order ID: ' . $order->getIncrementId());
+        // $order = $observer->getEvent()->getOrder();
+        $this->logger->info('Test');
+        $orderObject = $observer->getEvent()->getOrder();
+        if ($orderObject == null) return;
 
-        if ($order->getState() == Order::STATE_CANCELED) {
-            $quote = $this->quoteManagement->getQuote($order->getQuoteId());
-            $quote->setReservedOrderId($order->getIncrementId());
-            $quote->save();
-            $newOrder = $this->quoteManagement->submit($quote);
-            $this->orderRepository->save($newOrder);
-        }
+        $orderId = $observer->getEvent()->getOrder()->getId();
+        $order = $this->orderRepository->get($orderId);
+
+        // $this->logger->info('OrderCancelObserver: Order ID: ' . $order->getIncrementId());
+
+        // if ($order->getState() == Order::STATE_CANCELED) {
+        //     $quote = $this->quoteManagement->getQuote($order->getQuoteId());
+        //     $quote->setReservedOrderId($order->getIncrementId());
+        //     $quote->save();
+        //     $newOrder = $this->quoteManagement->submit($quote);
+        //     $this->orderRepository->save($newOrder);
+        // }
     }
 }
