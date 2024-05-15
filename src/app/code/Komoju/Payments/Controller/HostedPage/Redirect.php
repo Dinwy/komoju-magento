@@ -31,13 +31,13 @@ class Redirect extends Action
     protected Session $_checkoutSession;
     private LoggerInterface $logger;
     private Config $config;
-    private OrderRepositoryInterface $orderRepository;
-    private ExternalPayment $externalPayment;
-    private ExternalPaymentFactory $externalPaymentFactory;
-    private KomojuApi $komojuApi;
-    private CountryFactory $countryFactory;
 
-    private ?Order $order = null;
+    private $order = false;
+    private $externalPayment;
+    private $komojuApi;
+    private $countryFactory;
+    private $storeManager;
+
 
     public function __construct(
         Context $context,
@@ -45,18 +45,16 @@ class Redirect extends Action
         ExternalPaymentFactory $externalPaymentFactory,
         Session $checkoutSession,
         Config $config,
-        OrderRepositoryInterface $orderRepository,
-        LoggerInterface $logger = null,
         StoreManagerInterface $storeManager,
+        LoggerInterface $logger = null,
         KomojuApi $komojuApi,
         CountryFactory $countryFactory
     ) {
         $this->logger = $logger ?: ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
+        $this->externalPayment = $externalPaymentFactory->create();
         $this->_resultRedirectFactory = $resultRedirectFactory;
         $this->_checkoutSession = $checkoutSession;
         $this->config = $config;
-        $this->orderRepository = $orderRepository;
-        $this->externalPayment = $externalPaymentFactory->create();
         $this->storeManager = $storeManager;
         $this->komojuApi = $komojuApi;
         $this->_countryFactory = $countryFactory;

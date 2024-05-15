@@ -63,8 +63,7 @@ class PostSessionRedirect extends Action
             $result->setContents('hmac parameter is not valid');
 
             return $result;
-        }
-        ;
+        };
 
         $resultRedirect = $this->_resultFactory->create(ResultFactory::TYPE_REDIRECT);
 

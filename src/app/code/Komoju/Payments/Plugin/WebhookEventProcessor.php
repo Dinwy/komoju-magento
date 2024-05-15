@@ -54,6 +54,8 @@ class WebhookEventProcessor
     public function processEvent(): void
     {
         $eventType = $this->webhookEvent->eventType();
+        $this->logger->debug('Processing event: ' . $eventType);
+
         switch ($eventType) {
             case 'payment.captured':
                 $this->processPaymentCaptured();
