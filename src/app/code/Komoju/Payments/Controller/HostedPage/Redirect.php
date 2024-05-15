@@ -38,7 +38,6 @@ class Redirect extends Action
     private $countryFactory;
     private $storeManager;
 
-
     public function __construct(
         Context $context,
         RedirectFactory $resultRedirectFactory,
@@ -57,7 +56,7 @@ class Redirect extends Action
         $this->config = $config;
         $this->storeManager = $storeManager;
         $this->komojuApi = $komojuApi;
-        $this->_countryFactory = $countryFactory;
+        $this->countryFactory = $countryFactory;
 
         parent::__construct($context);
     }
@@ -162,7 +161,7 @@ class Redirect extends Action
             'zipcode' => $address->getPostcode(),
             'street_address1' => $streets[0],
             'street_address2' => $streets[1],
-            'country' => $this->_countryFactory->create()->loadByCode($address->getCountryId())->getName(),
+            'country' => $this->countryFactory->create()->loadByCode($address->getCountryId())->getName(),
             'city' => $address->getCity(),
         ];
 
