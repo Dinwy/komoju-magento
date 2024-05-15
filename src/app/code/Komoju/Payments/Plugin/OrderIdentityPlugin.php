@@ -2,6 +2,7 @@
 
 namespace Komoju\Payments\Plugin;
 
+use Magento\Framework\App\ObjectManager;
 use Magento\Checkout\Model\Session;
 use Magento\Sales\Model\Order\Email\Container\OrderIdentity;
 
@@ -28,13 +29,16 @@ class OrderIdentityPlugin
      */
     public function aroundIsEnabled(OrderIdentity $subject, callable $proceed): bool
     {
+        $logger = ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
         $returnValue = $proceed();
 
         $forceOrderMailSentOnSuccess = $this->checkoutSession->getForceOrderMailSentOnSuccess();
-        if (isset($forceOrderMailSentOnSuccess) && $forceOrderMailSentOnSuccess) {
+        if (!$forceOrderMailSentOnSuccess) {
             $returnValue = !$returnValue;
             $this->checkoutSession->unsForceOrderMailSentOnSuccess();
         }
+
+        $logger->info('OrderIdentityPlugin::aroundIsEnabled: ' . $returnValue);
 
         return $returnValue;
     }

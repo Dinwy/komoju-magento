@@ -2,6 +2,8 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
     <event name="payment_method_is_active">
         <observer name="disable_payment" instance="Komoju\Payments\Observer\PaymentMethodAvailable" />
-        <observer name="send_mail_on_order_success" instance="Komoju\Payments\Observer\SendMailOnOrderSuccess" />
+    </event>
+    <event name="send_mail_on_order_success">
+        <observer name="send_order_success_email" instance="Komoju\Payments\Observer\SendMailOnOrderSuccess" />
     </event>
 </config>

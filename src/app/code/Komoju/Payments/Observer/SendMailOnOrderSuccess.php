@@ -2,26 +2,31 @@
 
 namespace Komoju\Payments\Observer;
 
+use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Event\Observer;
 use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender;
 use Magento\Checkout\Model\Session;
+use Psr\Log\LoggerInterface;
 
 class SendMailOnOrderSuccess implements ObserverInterface
 {
     protected OrderFactory $orderModel;
     protected OrderSender $orderSender;
     protected Session $checkoutSession;
+    private LoggerInterface $logger;
 
     public function __construct(
         OrderFactory $orderModel,
         OrderSender $orderSender,
-        Session $checkoutSession
+        Session $checkoutSession,
+        LoggerInterface $logger = null,
     ) {
         $this->orderModel = $orderModel;
         $this->orderSender = $orderSender;
         $this->checkoutSession = $checkoutSession;
+        $this->logger = $logger ?: ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
     }
 
     /**
@@ -32,11 +37,11 @@ class SendMailOnOrderSuccess implements ObserverInterface
      */
     public function execute(Observer $observer)
     {
-        $orderIds = $observer->getEvent()->getOrderIds();
-        if (count($orderIds)) {
-            $this->checkoutSession->setForceOrderMailSentOnSuccess(true);
-            $order = $this->orderModel->create()->load($orderIds[0]);
-            $this->orderSender->send($order, true);
-        }
+        $this->logger->info('SendMailOnOrderSuccess observer triggered');
+
+        $order = $observer->getEvent()->getData('order');
+        if (!$order) return;
+        $this->logger->info('Sending order email for order ID: ' . $order->getIncrementId());
+        $this->orderSender->send($order, true);
     }
 }

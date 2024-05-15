@@ -12,6 +12,7 @@ use Psr\Log\LoggerInterface;
 use Magento\Checkout\Model\Session;
 use Komoju\Payments\Api\KomojuApi;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\Event\ManagerInterface;
 
 // use Magento\Framework\Controller\Result\Raw;
 // use Magento\Framework\Controller\Result\Redirect;
@@ -35,6 +36,7 @@ class PostSessionRedirect extends Action
     private Config $config;
     private OrderRepositoryInterface $orderRepository;
     private KomojuApi $komojuApi;
+    private ManagerInterface $eventManager;
 
     public function __construct(
         OrderRepositoryInterface $orderRepository,
@@ -43,7 +45,8 @@ class PostSessionRedirect extends Action
         Config $config,
         LoggerInterface $logger = null,
         Session $checkoutSession,
-        KomojuApi $komojuApi
+        KomojuApi $komojuApi,
+        ManagerInterface $eventManager
     ) {
         $this->logger = $logger ?: ObjectManager::getInstance()->get(LoggerInterface::class);
         $this->_resultFactory = $resultFactory;
@@ -51,6 +54,7 @@ class PostSessionRedirect extends Action
         $this->orderRepository = $orderRepository;
         $this->_checkoutSession = $checkoutSession;
         $this->komojuApi = $komojuApi;
+        $this->eventManager = $eventManager;
 
         parent::__construct($context);
     }
@@ -88,9 +92,15 @@ class PostSessionRedirect extends Action
         $orderId = $this->getRequest()->getParam('order_id');
         $order = $this->getOrder($orderId);
 
-        $order->setState(Order::STATE_PAYMENT_REVIEW);
-        $order->setStatus(Order::STATE_PAYMENT_REVIEW);
+        $order->setState(Order::STATE_PROCESSING);
+        $order->setStatus(Order::STATE_PROCESSING);
         $order->save();
+
+        // Dispatch event
+        $this->eventManager->dispatch(
+            'send_mail_on_order_success',
+            ['order' => $order]
+        );
         return $this->_url->getUrl('checkout/onepage/success');
     }
 

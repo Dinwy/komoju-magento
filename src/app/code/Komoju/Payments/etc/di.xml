@@ -41,7 +41,7 @@
         </arguments>
     </type>
 
-    <type name="Magento\Sales\Model\Order\Email\Container\OrderIdentity">
-        <plugin name="change_is_enable_method" type="Komoju\Payments\Plugin\OrderIdentityPlugin"/>
-    </type>
+    <type name="Magento\Sales\Model\Order\Email\Container\OrderIdentity">
+        <plugin name="change_is_enable_method" type="Komoju\Payments\Plugin\OrderIdentityPlugin"/>
+    </type>
 </config>
