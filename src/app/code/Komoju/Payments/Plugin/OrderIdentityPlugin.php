@@ -38,7 +38,7 @@ class OrderIdentityPlugin
             $this->checkoutSession->unsForceOrderMailSentOnSuccess();
         }
 
-        $logger->info('OrderIdentityPlugin::aroundIsEnabled: ' . $returnValue);
+        $logger->info('OrderIdentityPlugin::aroundIsEnabled? ' . $returnValue);
 
         return $returnValue;
     }
