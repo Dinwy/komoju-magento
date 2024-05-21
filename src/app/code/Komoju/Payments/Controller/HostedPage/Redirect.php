@@ -37,6 +37,7 @@ class Redirect extends Action
     private $komojuApi;
     private $countryFactory;
     private $storeManager;
+    private $orderRepository;
 
     public function __construct(
         Context $context,
@@ -47,7 +48,7 @@ class Redirect extends Action
         StoreManagerInterface $storeManager,
         LoggerInterface $logger = null,
         KomojuApi $komojuApi,
-        CountryFactory $countryFactory
+        CountryFactory $countryFactory,
     ) {
         $this->logger = $logger ?: ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
         $this->externalPayment = $externalPaymentFactory->create();
@@ -93,7 +94,12 @@ class Redirect extends Action
     private function createHostedPageUrl()
     {
         $paymentMethod = $this->getRequest()->getParam('payment_method');
-        $order = $this->getOrder();
+        $quote = $this->_checkoutSession->getQuote();
+
+        $this->logger->info('quote: ' . json_encode($quote));
+        $quoteOrder = $quote ? $quote->getOrder() : null;
+
+        $order = $quoteOrder ? $quoteOrder : $this->getOrder();
         $externalOrderNum = $this->createExternalPayment($order);
         $currencyCode = $this->storeManager->getStore()->getBaseCurrencyCode();
         $returnUrl = $this->createReturnUrl($order->getEntityId());
@@ -198,13 +204,14 @@ class Redirect extends Action
      * data.
      * @return Order
      */
-    private function getOrder()
-    {
+     private function getOrder()
+     {
         if (!$this->order) {
             $this->order = $this->_checkoutSession->getLastRealOrder();
         }
         return $this->order;
-    }
+     }
+
 
     /**
      * Creates the return url for the PostSessionRedirect endpoint in this plugin. Because we
