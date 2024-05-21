@@ -3,7 +3,7 @@
     <event name="payment_method_is_active">
         <observer name="disable_payment" instance="Komoju\Payments\Observer\PaymentMethodAvailable" />
     </event>
-    <event name="send_mail_on_order_success">
+    <event name="sales_order_save_after">
         <observer name="send_order_success_email" instance="Komoju\Payments\Observer\SendMailOnOrderSuccess" />
     </event>
 </config>

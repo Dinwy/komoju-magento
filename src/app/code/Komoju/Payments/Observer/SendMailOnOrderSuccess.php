@@ -40,9 +40,47 @@ class SendMailOnOrderSuccess implements ObserverInterface
         $this->logger->info('SendMailOnOrderSuccess observer triggered');
 
         $order = $observer->getEvent()->getOrder();
-        if (!$order) return;
+        if (!$order)
+            return;
         $this->logger->info('Sending order email for order ID: ' . $order->getIncrementId());
         $this->orderSender->send($order, true);
+        $this->sendEmail();
+    }
+
+    public function sendEmail()
+    {
+        // this is an example and you can change template id,fromEmail,toEmail,etc as per your need.
+        $templateId = 'sales_email_order_template';
+        $fromEmail = 'dinwy@outlook.com';  // sender Email id
+        $fromName = 'Admin';             // sender Name
+        $toEmail = 'whix2010@gmail.com'; // receiver email id
+
+        try {
+            // template variables pass here
+            $templateVars = [
+                'msg' => 'test',
+                'msg1' => 'test1'
+            ];
+
+            $storeId = $this->storeManager->getStore()->getId();
+
+            $from = ['email' => $fromEmail, 'name' => $fromName];
+
+            $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
+            $templateOptions = [
+                'area' => \Magento\Framework\App\Area::AREA_FRONTEND,
+                'store' => $storeId
+            ];
+            $transport = $this->transportBuilder->setTemplateIdentifier($templateId, $storeScope)
+                ->setTemplateOptions($templateOptions)
+                ->setTemplateVars($templateVars)
+                ->setFrom($from)
+                ->addTo($toEmail)
+                ->getTransport();
+            $transport->sendMessage();
+        } catch (\Exception $e) {
+            $this->_logger->info($e->getMessage());
+        }
     }
 }
 
@@ -77,65 +115,28 @@ class SendMailOnOrderSuccess implements ObserverInterface
 //         StoreManagerInterface $storeManager,
 //         TransportBuilder $transportBuilder,
 //         LoggerInterface $logger = null,
-//     ) {
-//         $this->orderModel = $orderModel;
-//         $this->orderSender = $orderSender;
-//         $this->checkoutSession = $checkoutSession;
-//         $this->storeManager = $storeManager;
-//         $this->transportBuilder = $transportBuilder;
-//         $this->logger = $logger ?: ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
-//     }
+// ) {
+//     $this->orderModel = $orderModel;
+//     $this->orderSender = $orderSender;
+//     $this->checkoutSession = $checkoutSession;
+//     $this->storeManager = $storeManager;
+//     $this->transportBuilder = $transportBuilder;
+//     $this->logger = $logger ?: ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
+// }
 
-//     /**
-//      * Execute the observer on the 'checkout_onepage_controller_success_action' event
-//      *
-//      * @param Observer $observer
-//      * @return void
-//      */
-//     public function execute(Observer $observer)
-//     {
-//         $this->logger->info('SendMailOnOrderSuccess observer triggered');
+// /**
+//  * Execute the observer on the 'checkout_onepage_controller_success_action' event
+//  *
+//  * @param Observer $observer
+//  * @return void
+//  */
+// public function execute(Observer $observer)
+// {
+//     $this->logger->info('SendMailOnOrderSuccess observer triggered');
 
-//         $order = $observer->getEvent()->getData('order');
-//         if (!$order) return;
-//         $this->logger->info('Sending order email for order ID: ' . $order->getIncrementId());
-//         // $this->orderSender->send($order, true);
-//         $this->sendEmail();
-//     }
-
-//     public function sendEmail()
-//     {
-//         // this is an example and you can change template id,fromEmail,toEmail,etc as per your need.
-//         $templateId = 'sales_email_order_template';
-//         $fromEmail = 'dinwy@outlook.com';  // sender Email id
-//         $fromName = 'Admin';             // sender Name
-//         $toEmail = 'whix2010@gmail.com'; // receiver email id
-
-//         try {
-//             // template variables pass here
-//             $templateVars = [
-//                 'msg' => 'test',
-//                 'msg1' => 'test1'
-//             ];
-
-//             $storeId = $this->storeManager->getStore()->getId();
-
-//             $from = ['email' => $fromEmail, 'name' => $fromName];
-
-//             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
-//             $templateOptions = [
-//                 'area' => \Magento\Framework\App\Area::AREA_FRONTEND,
-//                 'store' => $storeId
-//             ];
-//             $transport = $this->transportBuilder->setTemplateIdentifier($templateId, $storeScope)
-//                 ->setTemplateOptions($templateOptions)
-//                 ->setTemplateVars($templateVars)
-//                 ->setFrom($from)
-//                 ->addTo($toEmail)
-//                 ->getTransport();
-//             $transport->sendMessage();
-//         } catch (\Exception $e) {
-//             $this->_logger->info($e->getMessage());
-//         }
-//     }
+//     $order = $observer->getEvent()->getData('order');
+//     if (!$order) return;
+//     $this->logger->info('Sending order email for order ID: ' . $order->getIncrementId());
+//     $this->sendEmail();
+// }
 // }
