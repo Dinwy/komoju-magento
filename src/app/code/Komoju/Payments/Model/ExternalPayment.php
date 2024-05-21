@@ -21,7 +21,7 @@ class ExternalPayment extends \Magento\Framework\Model\AbstractModel
     {
         $this->_init(\Komoju\Payments\Model\ResourceModel\ExternalPayment::class);
     }
-    
+
     /**
      * Creates an external payment object. The external payment id is created using
      * PHP's uniqid value, combined with the order id. This creates a very low chance

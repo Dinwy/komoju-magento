@@ -92,8 +92,8 @@ class PostSessionRedirect extends Action
         $orderId = $this->getRequest()->getParam('order_id');
         $order = $this->getOrder($orderId);
 
-        $order->setState(Order::STATE_PROCESSING);
-        $order->setStatus(Order::STATE_PROCESSING);
+        // $order->setState(Order::STATE_PROCESSING);
+        // $order->setStatus(Order::STATE_PROCESSING);
         $order->save();
 
         // Dispatch event
@@ -101,6 +101,7 @@ class PostSessionRedirect extends Action
             'send_mail_on_order_success',
             ['order' => $order]
         );
+
         return $this->_url->getUrl('checkout/onepage/success');
     }
 
@@ -115,6 +116,8 @@ class PostSessionRedirect extends Action
 
         $orderId = $this->getRequest()->getParam('order_id');
         $order = $this->getOrder($orderId);
+
+        $this->logger->info('can cacnel?: ' . json_encode($order->canCancel()));
         if ($order->canCancel()) {
             $this->_checkoutSession->restoreQuote();
             $order->registerCancellation();
